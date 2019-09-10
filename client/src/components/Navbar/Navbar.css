@@ -1,0 +1,19 @@
+.Navbar{
+    display: block;
+}
+
+.Navbar .brand-logo{
+    font-size: 1.5rem;
+}
+
+.Navbar .menu-icon{
+    float: left;
+}
+
+.Navbar .menu-icon .material-icons{
+    display: inline-block;
+    margin: 0 25px;
+    line-height: inherit;
+    height: auto;
+}
+

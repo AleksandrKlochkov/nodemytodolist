@@ -1,0 +1,12 @@
+.Input{
+    display: inline-block;
+    width: 100%;
+}
+
+.Input input{
+    color: #fff;
+}
+
+.Input .helper-text.invalid{
+    color: red;
+}

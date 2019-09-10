@@ -1,0 +1,61 @@
+.CreateList{
+        margin-top: 2rem;
+        border-bottom: 3px solid #000;
+        background: #2b2a2a;
+        box-shadow: 5px 7px 20px 0px #000;
+        border-radius: 5px;
+        padding: 25px;
+}
+
+.CreateList h1{
+    font-size: 2.2rem;
+}
+
+.CreateList h2 {
+    font-size: 1.2rem;
+}
+
+.CreateList .date{
+    font-size: 2.2rem;
+}
+
+.CreateList .task-row{
+    display: flex;
+    align-items: center;
+    flex-direction: row;
+    justify-content: space-between;
+}
+
+.CreateList .task-date {
+    font-size: 1.7rem;
+    font-weight: bold;
+    flex-grow: 1;
+}
+
+.CreateList .task-counter {
+    font-size: 1.2rem;
+    text-align: right;
+    font-weight: bold;
+    flex-grow: 1;
+}
+
+.mi-close-box{
+    cursor: pointer;
+    background: red;
+    float: right;
+    border-radius: 50%;
+    width:30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: box-shadow ease-in-out .3s;
+}
+
+.mi-close-box:hover{
+    box-shadow: 0px 0px 15px 5px #000;
+}
+
+.mi-close-box > i{
+    font-size: 23px;
+}
