@@ -39,6 +39,10 @@
     flex-grow: 1;
 }
 
+.CreateList p.сross-out{
+    text-decoration: line-through;
+}
+
 .mi-close-box{
     cursor: pointer;
     background: red;

@@ -1,6 +1,8 @@
 import React from 'react'
 import './Navbar.css'
 
+import {NavLink } from 'react-router-dom'
+
 const Navbar = props => {
     return(
         <div className={'Navbar'}>
@@ -13,10 +15,10 @@ const Navbar = props => {
                 <div className={'container-fluid'}>
                     <div className="nav-wrapper">
                      
-                        <a href="/" className="brand-logo">Список дел</a>
+                        <NavLink exact to="/" className="brand-logo">Список дел</NavLink> 
                         <ul id="nav-mobile" className="right hide-on-med-and-down">
-                            <li><a href="/">Главная</a></li>
-                            <li><a href="/create">Создать список дел</a></li>
+                            <li><NavLink exact activeClassName="activesada" to="/">Главная</NavLink></li>
+                            <li><NavLink to="/create">Создать список дел</NavLink></li>
                         </ul>
                     </div>
                 </div>
