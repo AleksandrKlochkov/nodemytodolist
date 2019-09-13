@@ -10,9 +10,10 @@ import axios from 'axios'
 moment.updateLocale('ru',  
     {
         longDateFormat : {
+        LLL : 'D MMMM YYYY, HH:mm:ss',
         LL : 'D MMMM YYYY',
     }, 
-    months: ['Январь' , 'Февраль' , 'Март' , 'Апрель' , 'Май' , 'Июнь' , 'Июль' , 'Август' , 'Сентябрь' , 'Октябрь' , 'Ноябрь' , 'Декабрь' ]
+    months: ['Января' , 'Февраля' , 'Марта' , 'Апреля' , 'Майя' , 'Июня' , 'Июля' , 'Августа' , 'Сентября' , 'Октября' , 'Ноября' , 'Декабря' ]
 }) 
 
 class CreateList extends Component {
@@ -24,72 +25,89 @@ class CreateList extends Component {
         }
     }
 
-    markTaskHandler = (event) => {
+    markTaskHandler = async (event) => {
         const index = event.target.dataset.index
         const taskList = this.state.taskList
-        if(index){
-            if(event.target.checked){
-                taskList[index].done = true
-                this.setState({
-                    taskList
-                })
-            }else{
-                taskList[index].done = false
-                this.setState({
-                    taskList
-                })
-            }
-        }
+        const id = event.target.dataset.id
+        const eventChecked = event.target.checked
+        const done = taskList[index].done
+            if(id){
+                try{
+                    await axios({
+                            method: 'PUT',
+                            headers: { 'Content-Type': 'application/json' },
+                            url: '/api/todo/'+id,
+                            data: JSON.stringify({done: !done})
+                            })
+                            .then(response => {
+                                if(response.data.todo){
+                                    if(eventChecked){
+                                        response.data.todo.updatedAt = moment(response.data.todo.updatedA).format('LLL')
+                                        response.data.todo.createdAt = moment(response.data.todo.createdAt).format('LLL')
+                                        taskList.splice(index, 1, response.data.todo)
+                                        this.setState({
+                                            taskList
+                                        })
+                                    }else{
+                                        taskList[index].done = false
+                                        this.setState({
+                                            taskList
+                                        })
+                                    }
+                                       
+                                }
+                            })
+                            .catch(e=>console.log(e))
+            }catch(e){
+                console.log(e)
+            } 
 
+           
+           
+        }
     }
 
-    async sendTaskToDb(itemTaskList){
-        console.log(itemTaskList)
-        try{
-            await axios.post('/api/todo/',{
-                    title: itemTaskList.task,
-                    done: itemTaskList.done
-            })
-            .then(function (response) {
-                console.log(response);
-            })
-            .catch(function (error) {
-                console.log(error);
-            });
-        }catch(e){
-            console.log(e)
-        }
-       
-    }
-
-    onSubmitHandler = (event) =>{
+    onSubmitHandler = async (event) =>{
        event.preventDefault()
        const form = event.target.querySelectorAll('input')
        const inputsOptions = this.state.inputsOptions
-       let itemTaskList = {}
-       const taskList = this.state.taskList
-     
-       const todaysDate = moment().format('LL')
+       const taskList = this.state.taskList.slice(0)
 
        form.forEach((item)=> {
-           if(item.value.length>0){
-            itemTaskList = {task:item.value, date: todaysDate.toString(), done: false}
-            taskList.push(itemTaskList)
+           if(item.value.length>0){           
             inputsOptions.isInvalid = true
-            if(itemTaskList){
-                this.sendTaskToDb(itemTaskList)
-            }
+            const title = item.value.trim()
+                if(title){
+                    try{
+                        axios({
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            url: '/api/todo',
+                            data: JSON.stringify({title})
+                        })
+                    .then(response=>{
+                            response.data.todo.updatedAt = moment(response.data.todo.updatedA).format('LLL')
+                            response.data.todo.createdAt = moment(response.data.todo.createdAt).format('LLL')
+                            console.log(response.data.todo)
+                            taskList.unshift(response.data.todo)
+                            this.setState({
+                                taskList,
+                                inputsOptions
+                            })
+                        })
+                    .catch(e=>console.log(e))
+                    }catch(e){
+                        console.log(e)
+                    } 
+                
+                }
            }else{
                inputsOptions.isInvalid = false
                this.setState({
                 inputsOptions
                })
+               return 
            }   
-       })
-     
-       this.setState({
-        taskList,
-        inputsOptions
        })
 
        form.forEach((item)=> {
@@ -97,53 +115,86 @@ class CreateList extends Component {
        })
     }
 
-    
-   
-
-    deleteItemTask = (event) => {
+    deleteItemTask = async (event) => {
         event.preventDefault()
-        const index = event.target.dataset.index
         const taskList = this.state.taskList
-        taskList.splice(index,1)
-        this.setState({
-            taskList
-        })
-    }
+        const index = event.target.dataset.index
+        const id = event.target.dataset.id
+        if(taskList.length>0){
+            if(id){
+                try{
+                    await axios({
+                            method: 'delete',
+                            headers: { 'Content-Type': 'application/json' },
+                            url: '/api/todo/'+id
+                            })
+                            .then(response => {
+                            
+                                taskList.splice(index,1)    
+                                this.setState({
+                                    taskList
+                                })
+                            })
+                            .catch(e=>console.log(e))
+                }catch(e){
+                    console.log(e)
+                } 
+            }
+        }
+      
 
+
+    }
     
-    taskListCompilation = () => {
-     return this.state.taskList.map((item, index)=>{
-         let idx = index
-         return(
-            <tr key={index}>
-                <td style={{width : 25}}>
-                    <Checkbox itemDone={item.done} idx={idx} markTaskHandler={(event)=>this.markTaskHandler(event)}/>
-                </td>
-                <td>
-                    <p className={item.done ? 'сross-out' : ''} style={{fontWeight: 'bold'}}>{item.task}</p>
-                    <p className={item.done ? 'сross-out' : ''} style={{fontWeight: 500}}>Добавлено {item.date}</p>
-                </td>
-                <td style={{textAlign : 'right'}}>
-                    <div className="mi-close-box">
-                        <i onClick={(event)=>this.deleteItemTask(event)} data-index={idx} className="large material-icons">close</i>
-                    </div>
-                </td>
-            </tr>
-         )
-      })
+    taskListCompilation(){
+        const taskList = this.state.taskList
+        console.log(taskList)
+        if(taskList.length>0){
+            return taskList.map((item, index)=>{
+                let idx = index
+                return(
+                    <tr key={index}>
+                        <td style={{width : 25}}>
+                            <Checkbox itemDone={item.done} idx={idx} id={item.id} onChange={(event)=>this.markTaskHandler(event)}/>
+                        </td>
+                        <td>
+                            <p className={item.done ? 'сross-out' : ''} style={{fontWeight: 'bold'}}>{item.title}</p>
+                            <p style={{fontWeight: 300}}>Добавлено {item.createdAt} <small>(изменено {item.updatedAt})</small></p>
+                        </td>
+                        <td style={{textAlign : 'right'}}>
+                            <div className="mi-close-box">
+                                <i onClick={(event)=>this.deleteItemTask(event)} data-index={idx} data-id={item.id} className="large material-icons">close</i>
+                            </div>
+                        </td>
+                    </tr>
+                )
+            })
+        }else{
+            return
+        }
 
     
     }
 
     
     async componentDidMount(){
+        const taskList = this.state.taskList
             try{
                 await  axios.get('/api/todo')
-                .then(function (response) {
-                    console.log(response);
+                .then((response) => {
+                    response.data.reverse().map((item)=>{
+                        item.createdAt = moment(item.createdAt).format('LLL')
+                        item.updatedAt = moment(item.updatedAt).format('LLL')
+                        taskList.push(item)
+                    })
+
+                    this.setState({
+                        taskList
+                    })
+                    
                 })
-                .catch(function (error) {
-                    console.log(error);
+                .catch((error) => {
+                    console.log(error)
                 });
     
             }catch(e){
@@ -174,9 +225,7 @@ class CreateList extends Component {
                         </div>
                     </form>
                 </div>
-                {
-                    this.state.taskList.length > 0 
-                    ? 
+
                         <div className="row">
                             <h2>Ваши задачи</h2>
                             <table>
@@ -185,9 +234,6 @@ class CreateList extends Component {
                                 </tbody>
                             </table>
                         </div>
-                    : 
-                    <p>У Вас пока нет задач</p>
-                    }
                   
             </div>
         )

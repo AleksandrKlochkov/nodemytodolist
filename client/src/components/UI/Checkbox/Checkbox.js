@@ -2,6 +2,7 @@ import React from 'react'
 import './Checkbox.css'
 
 const Checkbox = props => {
+
         const checkboxClasses = [
             'filled-in'
         ]
@@ -15,10 +16,11 @@ const Checkbox = props => {
                     <input
                       type="checkbox"
                       data-index={props.idx}
-                      onChange={props.markTaskHandler}
+                      onChange={props.onChange}
                       name={checkboxName}
                       className={checkboxClasses.join(' ')} 
                       defaultChecked={props.itemDone}
+                      data-id={props.id}
                     />
                      <span>{checkboxLabel}</span>
                  </label>

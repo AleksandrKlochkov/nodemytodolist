@@ -3,7 +3,6 @@ const sequelize = require('./utils/database')
 const app = require('./app')
 const port = process.env.PORT || 5000
 
-
 async function start() {
     try{
         await sequelize.sync()

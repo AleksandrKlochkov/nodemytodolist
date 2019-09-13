@@ -30,7 +30,7 @@ const Input = props => {
                     ? 
                     null
                     :
-                    <span class="helper-text invalid">{invalidMessage}</span>
+                    <span className="helper-text invalid">{invalidMessage}</span>
                    
                 }
                
