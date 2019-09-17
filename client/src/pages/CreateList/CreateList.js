@@ -6,6 +6,7 @@ import axios from 'axios'
 import Input from '../../components/UI/Input/Input'
 import Button from '../../components/UI/Button/Button'
 import Checkbox from '../../components/UI/Checkbox/Checkbox'
+import Loader from '../../components/UI/Loader/Loader'
 
 moment.updateLocale('ru',  
     {
@@ -22,34 +23,45 @@ class CreateList extends Component {
         taskList: [],
         inputsOptions : {
             isInvalid: true
-        }
+        },
+        loader: true
     }
 
     markTaskHandler = async (event) => {
         const taskList = this.state.taskList
         const id = event.target.dataset.id
-        const taskIndex = taskList.findIndex((task => task.id === +id));
+        const taskIndex = taskList.findIndex((task => task.id === id));
         const eventChecked = event.target.checked
         const done = taskList[taskIndex].done
             if(id){
+                const query = `
+                    mutation {
+                        completedTodo(id: "${id}", done: ${!done}){
+                            updatedAt
+                        }
+                    }
+                `
                 try{
                     await axios({
-                            method: 'PUT',
-                            headers: { 'Content-Type': 'application/json' },
-                            url: '/api/todo/'+id,
-                            data: JSON.stringify({done: !done})
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Accept': 'application/json'
+                                },
+                            url: '/graphql',
+                            data: JSON.stringify({query})
                             })
                             .then(response => {
-                                if(response.data.todo){
+                                const todoItemTodo = response.data.data.completedTodo
+                                if(todoItemTodo){
                                     if(eventChecked){
-                                        response.data.todo.updatedAt = moment(response.data.todo.updatedA).format('LLL')
-                                        response.data.todo.createdAt = moment(response.data.todo.createdAt).format('LLL')
-
-                                        taskList.splice(taskIndex, 1, response.data.todo)
+                                        taskList[taskIndex].updatedAt = moment(+todoItemTodo.updatedAt).format('LLL')
+                                        taskList[taskIndex].done = !done
                                         this.setState({
                                             taskList
                                         })
                                     }else{
+                                        taskList[taskIndex].updatedAt = moment(+todoItemTodo.updatedAt).format('LLL')
                                         taskList[taskIndex].done = false
                                         this.setState({
                                             taskList
@@ -76,23 +88,37 @@ class CreateList extends Component {
             inputsOptions.isInvalid = true
             const title = item.value.trim()
                 if(title){
+                    const query = `
+                        mutation {
+                            createTodo(todo: {title: "${title}"}) {
+                            title
+                            id
+                            createdAt
+                            updatedAt
+                            }
+                        }
+                    `
                     try{
                         axios({
                             method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            url: '/api/todo',
-                            data: JSON.stringify({title})
+                            headers: {
+                                 'Content-Type': 'application/json',
+                                 'Accept': 'application/json'
+                                 },
+                            url: '/graphql',
+                            data: JSON.stringify({query})
                         })
-                    .then(response=>{
-                            response.data.todo.updatedAt = moment(response.data.todo.updatedA).format('LLL')
-                            response.data.todo.createdAt = moment(response.data.todo.createdAt).format('LLL')
-                            taskList.unshift(response.data.todo)
-                            this.setState({
-                                taskList,
-                                inputsOptions
+                        .then(response=>{
+                            const createItemTodo =  response.data.data.createTodo
+                                createItemTodo.updatedAt = moment(+createItemTodo.updatedAt).format('LLL')
+                                createItemTodo.createdAt = moment(+createItemTodo.createdAt).format('LLL')
+                                taskList.push(createItemTodo)
+                                this.setState({
+                                    taskList,
+                                    inputsOptions
+                                })
                             })
-                        })
-                    .catch(e=>console.log(e))
+                        .catch(e=>console.log(e))
                     }catch(e){
                         console.log(e)
                     } 
@@ -118,15 +144,25 @@ class CreateList extends Component {
         const id = event.target.dataset.id
         if(taskList.length>0){
             if(id){
+                const query = `
+                        mutation {
+                            removeTodo(id: "${id}")
+                        }
+                    `
+                
                 try{
                     await axios({
-                            method: 'delete',
-                            headers: { 'Content-Type': 'application/json' },
-                            url: '/api/todo/'+id
+                            method: 'POST',
+                            headers: { 
+                                'Content-Type': 'application/json',
+                                'Accept': 'application/json'
+                            },
+                            url: '/graphql',
+                            data: JSON.stringify({query})
                             })
                             .then(() => {
                                 this.setState({
-                                    taskList: taskList.filter((task) => task.id !== +id)
+                                    taskList: taskList.filter((task) => task.id !== id)
                                 })
                               
                             })
@@ -142,7 +178,14 @@ class CreateList extends Component {
     renderYourTask(){
         const taskList = this.state.taskList
                 if(taskList.length>0){
-                    return taskList.map((item, idx)=>{
+                    return taskList.sort((a,b)=>{
+                        if(a.updatedAt<b.updatedAt){
+                            return 1
+                        }else if(a.updatedAt>b.updatedAt){
+                            return -1
+                        }
+                            return 0
+                   }).map((item, idx)=>{
                                 return(
                                     <tr key={idx}>
                                         <td style={{width : 25}}>
@@ -164,35 +207,50 @@ class CreateList extends Component {
           
     }
     
-    
     async componentDidMount(){
         const taskList = this.state.taskList
+
+        const query = `
+                query {
+                    getTodos{
+                    id title done createdAt updatedAt
+                    }
+                }
+            `
+
             try{
-                await  axios.get('/api/todo')
-                .then((response) => {
-                   response.data.sort((a,b)=>{
-                        if(a.updatedAt<b.updatedAt){
-                            return 1
-                        }else if(a.updatedAt>b.updatedAt){
-                            return -1
-                        }
-                            return 0
-                        
-                      
-                   }).map((item)=>{
-                        item.createdAt = moment(item.createdAt).format('LLL')
-                        item.updatedAt = moment(item.updatedAt).format('LLL')
-                        taskList.push(item)
-                        this.setState({
-                            taskList
-                        })
-                        return ''
-                    })
+                await axios({
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                     },
+                    url: '/graphql',
+                    data: JSON.stringify({query})
                 })
-                .catch((error) => {
-                    console.log(error)
-                });
-    
+                .then((response) => {
+                    const todos = response.data.data.getTodos
+                    if(todos.length>0){
+                    todos.map((item)=>{
+                         item.createdAt = moment(+item.createdAt).format('LLL')
+                         item.updatedAt = moment(+item.updatedAt).format('LLL')
+                         taskList.push(item)
+                         this.setState({
+                             taskList,
+                             loader: false
+                         })
+                         return ''
+                     })
+                    }else{
+                        this.setState({
+                            taskList,
+                            loader: false
+                        })
+                    }
+                 })
+                 .catch((error) => {
+                     console.log(error)
+                 });
             }catch(e){
                 console.log(e)
             }
@@ -221,17 +279,19 @@ class CreateList extends Component {
                         </div>
                     </form>
                 </div>
-                {this.state.taskList.length > 0 ?
-                    <div className="row">
+                {this.state.loader ? <Loader /> :
+                  <div className="row">
                         <h2>Ваши задачи</h2>
-                        <table>
-                            <tbody>
-                                {this.renderYourTask()}
-                            </tbody>
-                        </table>
-                    </div>
-                : 
-                    <p>У Вас нет задач</p>
+                        {this.state.taskList.length > 0 ?
+                                <table>
+                                    <tbody>
+                                        {this.renderYourTask()}
+                                    </tbody>
+                                </table>
+                        : 
+                            <p>У Вас нет задач</p>
+                        }
+                   </div>
                 }
                   
             </div>
