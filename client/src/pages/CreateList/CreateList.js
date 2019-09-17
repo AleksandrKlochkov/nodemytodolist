@@ -2,11 +2,14 @@ import React, { Component } from "react"
 import './CreateList.css'
 import moment from 'moment'
 import axios from 'axios'
+import {connect} from 'react-redux'
 
 import Input from '../../components/UI/Input/Input'
 import Button from '../../components/UI/Button/Button'
 import Checkbox from '../../components/UI/Checkbox/Checkbox'
 import Loader from '../../components/UI/Loader/Loader'
+import {fetchTodos} from '../../store/actions/createList'
+
 
 moment.updateLocale('ru',  
     {
@@ -18,14 +21,6 @@ moment.updateLocale('ru',
 }) 
 
 class CreateList extends Component {
-
-    state = {
-        taskList: [],
-        inputsOptions : {
-            isInvalid: true
-        },
-        loader: true
-    }
 
     markTaskHandler = async (event) => {
         const taskList = this.state.taskList
@@ -176,7 +171,7 @@ class CreateList extends Component {
     }
 
     renderYourTask(){
-        const taskList = this.state.taskList
+        const taskList = this.props.taskList
                 if(taskList.length>0){
                     return taskList.sort((a,b)=>{
                         if(a.updatedAt<b.updatedAt){
@@ -207,53 +202,9 @@ class CreateList extends Component {
           
     }
     
-    async componentDidMount(){
-        const taskList = this.state.taskList
-
-        const query = `
-                query {
-                    getTodos{
-                    id title done createdAt updatedAt
-                    }
-                }
-            `
-
-            try{
-                await axios({
-                    method: 'POST',
-                    headers: { 
-                        'Content-Type': 'application/json',
-                        'Accept': 'application/json'
-                     },
-                    url: '/graphql',
-                    data: JSON.stringify({query})
-                })
-                .then((response) => {
-                    const todos = response.data.data.getTodos
-                    if(todos.length>0){
-                    todos.map((item)=>{
-                         item.createdAt = moment(+item.createdAt).format('LLL')
-                         item.updatedAt = moment(+item.updatedAt).format('LLL')
-                         taskList.push(item)
-                         this.setState({
-                             taskList,
-                             loader: false
-                         })
-                         return ''
-                     })
-                    }else{
-                        this.setState({
-                            taskList,
-                            loader: false
-                        })
-                    }
-                 })
-                 .catch((error) => {
-                     console.log(error)
-                 });
-            }catch(e){
-                console.log(e)
-            }
+    componentDidMount(){
+        this.props.fetchTodos()
+       
     }
 
     render(){
@@ -262,7 +213,7 @@ class CreateList extends Component {
                 <h1>Создать список дел</h1>
                 <div className="row task-row">
                     <p className="task-date">{moment().format('LL')}</p>
-                    <p className="task-counter">Кол-во задач: {this.state.taskList.length}</p>
+                    <p className="task-counter">Кол-во задач: {this.props.taskList.length}</p>
                 </div>
                
                 <div className="row">
@@ -271,7 +222,7 @@ class CreateList extends Component {
                             <Input
                                 label={'Введите название задачи'}
                                 name={'name'}
-                                isValid={this.state.inputsOptions.isInvalid}
+                                isValid={this.props.inputsOptions.isInvalid}
                             />
                         </div>
                         <div className="row">
@@ -279,10 +230,10 @@ class CreateList extends Component {
                         </div>
                     </form>
                 </div>
-                {this.state.loader ? <Loader /> :
+                {this.props.loading ? <Loader /> :
                   <div className="row">
                         <h2>Ваши задачи</h2>
-                        {this.state.taskList.length > 0 ?
+                        {this.props.taskList.length > 0 ?
                                 <table>
                                     <tbody>
                                         {this.renderYourTask()}
@@ -299,4 +250,19 @@ class CreateList extends Component {
     }
 }
 
-export default CreateList
+
+function mapStateToProps(state) {
+    return {
+        taskList: state.create.taskList,
+        inputsOptions: state.create.inputsOptions,
+        loading: state.create.loading
+    }
+}
+
+function mapDispatchToProps(dispatch){
+    return {
+        fetchTodos: () => dispatch(fetchTodos())
+        }
+}
+
+export default connect(mapStateToProps,mapDispatchToProps)(CreateList)
