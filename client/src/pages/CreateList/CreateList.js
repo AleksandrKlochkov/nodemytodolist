@@ -1,11 +1,11 @@
 import React, { Component } from "react"
 import './CreateList.css'
 import moment from 'moment'
+import axios from 'axios'
 
 import Input from '../../components/UI/Input/Input'
-import Checkbox from '../../components/UI/Checkbox/Checkbox'
 import Button from '../../components/UI/Button/Button'
-import axios from 'axios'
+import Checkbox from '../../components/UI/Checkbox/Checkbox'
 
 moment.updateLocale('ru',  
     {
@@ -13,7 +13,7 @@ moment.updateLocale('ru',
         LLL : 'D MMMM YYYY, HH:mm:ss',
         LL : 'D MMMM YYYY',
     }, 
-    months: ['Января' , 'Февраля' , 'Марта' , 'Апреля' , 'Майя' , 'Июня' , 'Июля' , 'Августа' , 'Сентября' , 'Октября' , 'Ноября' , 'Декабря' ]
+    months: ['Января' , 'Февраля' , 'Марта' , 'Апреля' , 'Мая' , 'Июня' , 'Июля' , 'Августа' , 'Сентября' , 'Октября' , 'Ноября' , 'Декабря' ]
 }) 
 
 class CreateList extends Component {
@@ -26,11 +26,11 @@ class CreateList extends Component {
     }
 
     markTaskHandler = async (event) => {
-        const index = event.target.dataset.index
         const taskList = this.state.taskList
         const id = event.target.dataset.id
+        const taskIndex = taskList.findIndex((task => task.id === +id));
         const eventChecked = event.target.checked
-        const done = taskList[index].done
+        const done = taskList[taskIndex].done
             if(id){
                 try{
                     await axios({
@@ -44,12 +44,13 @@ class CreateList extends Component {
                                     if(eventChecked){
                                         response.data.todo.updatedAt = moment(response.data.todo.updatedA).format('LLL')
                                         response.data.todo.createdAt = moment(response.data.todo.createdAt).format('LLL')
-                                        taskList.splice(index, 1, response.data.todo)
+
+                                        taskList.splice(taskIndex, 1, response.data.todo)
                                         this.setState({
                                             taskList
                                         })
                                     }else{
-                                        taskList[index].done = false
+                                        taskList[taskIndex].done = false
                                         this.setState({
                                             taskList
                                         })
@@ -61,13 +62,10 @@ class CreateList extends Component {
             }catch(e){
                 console.log(e)
             } 
-
-           
-           
         }
     }
 
-    onSubmitHandler = async (event) =>{
+    onSubmitHandler = async (event) => {
        event.preventDefault()
        const form = event.target.querySelectorAll('input')
        const inputsOptions = this.state.inputsOptions
@@ -88,7 +86,6 @@ class CreateList extends Component {
                     .then(response=>{
                             response.data.todo.updatedAt = moment(response.data.todo.updatedA).format('LLL')
                             response.data.todo.createdAt = moment(response.data.todo.createdAt).format('LLL')
-                            console.log(response.data.todo)
                             taskList.unshift(response.data.todo)
                             this.setState({
                                 taskList,
@@ -118,7 +115,6 @@ class CreateList extends Component {
     deleteItemTask = async (event) => {
         event.preventDefault()
         const taskList = this.state.taskList
-        const index = event.target.dataset.index
         const id = event.target.dataset.id
         if(taskList.length>0){
             if(id){
@@ -128,70 +124,70 @@ class CreateList extends Component {
                             headers: { 'Content-Type': 'application/json' },
                             url: '/api/todo/'+id
                             })
-                            .then(response => {
-                            
-                                taskList.splice(index,1)    
+                            .then(() => {
                                 this.setState({
-                                    taskList
+                                    taskList: taskList.filter((task) => task.id !== +id)
                                 })
+                              
                             })
                             .catch(e=>console.log(e))
                 }catch(e){
                     console.log(e)
                 } 
             }
+
         }
-      
-
-
     }
-    
-    taskListCompilation(){
+
+    renderYourTask(){
         const taskList = this.state.taskList
-        console.log(taskList)
-        if(taskList.length>0){
-            return taskList.map((item, index)=>{
-                let idx = index
-                return(
-                    <tr key={index}>
-                        <td style={{width : 25}}>
-                            <Checkbox itemDone={item.done} idx={idx} id={item.id} onChange={(event)=>this.markTaskHandler(event)}/>
-                        </td>
-                        <td>
-                            <p className={item.done ? 'сross-out' : ''} style={{fontWeight: 'bold'}}>{item.title}</p>
-                            <p style={{fontWeight: 300}}>Добавлено {item.createdAt} <small>(изменено {item.updatedAt})</small></p>
-                        </td>
-                        <td style={{textAlign : 'right'}}>
-                            <div className="mi-close-box">
-                                <i onClick={(event)=>this.deleteItemTask(event)} data-index={idx} data-id={item.id} className="large material-icons">close</i>
-                            </div>
-                        </td>
-                    </tr>
-                )
-            })
-        }else{
-            return
-        }
-
-    
+                if(taskList.length>0){
+                    return taskList.map((item, idx)=>{
+                                return(
+                                    <tr key={idx}>
+                                        <td style={{width : 25}}>
+                                            <Checkbox itemDone={item.done ? true : false} idx={idx} id={item.id} onChange={(event)=>this.markTaskHandler(event)}/>
+                                        </td>
+                                        <td>
+                                            <p className={item.done ? 'сross-out' : ''} style={{fontWeight: 'bold'}}>{item.title}</p>
+                                            <p style={{fontWeight: 300}}>Добавлено {item.createdAt} <small>(изменено {item.updatedAt})</small></p>
+                                        </td>
+                                        <td style={{textAlign : 'right'}}>
+                                            <div className="mi-close-box">
+                                                <i onClick={(event)=>this.deleteItemTask(event)} data-index={idx} data-id={item.id} className="large material-icons">close</i>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                )
+                            })
+                          }     
+          
     }
-
+    
     
     async componentDidMount(){
         const taskList = this.state.taskList
             try{
                 await  axios.get('/api/todo')
                 .then((response) => {
-                    response.data.reverse().map((item)=>{
+                   response.data.sort((a,b)=>{
+                        if(a.updatedAt<b.updatedAt){
+                            return 1
+                        }else if(a.updatedAt>b.updatedAt){
+                            return -1
+                        }
+                            return 0
+                        
+                      
+                   }).map((item)=>{
                         item.createdAt = moment(item.createdAt).format('LLL')
                         item.updatedAt = moment(item.updatedAt).format('LLL')
                         taskList.push(item)
+                        this.setState({
+                            taskList
+                        })
+                        return ''
                     })
-
-                    this.setState({
-                        taskList
-                    })
-                    
                 })
                 .catch((error) => {
                     console.log(error)
@@ -225,15 +221,18 @@ class CreateList extends Component {
                         </div>
                     </form>
                 </div>
-
-                        <div className="row">
-                            <h2>Ваши задачи</h2>
-                            <table>
-                                <tbody>
-                                    {this.taskListCompilation()}
-                                </tbody>
-                            </table>
-                        </div>
+                {this.state.taskList.length > 0 ?
+                    <div className="row">
+                        <h2>Ваши задачи</h2>
+                        <table>
+                            <tbody>
+                                {this.renderYourTask()}
+                            </tbody>
+                        </table>
+                    </div>
+                : 
+                    <p>У Вас нет задач</p>
+                }
                   
             </div>
         )
