@@ -1,14 +1,13 @@
 import React, { Component } from "react"
 import './CreateList.css'
 import moment from 'moment'
-import axios from 'axios'
 import {connect} from 'react-redux'
 
 import Input from '../../components/UI/Input/Input'
 import Button from '../../components/UI/Button/Button'
 import Checkbox from '../../components/UI/Checkbox/Checkbox'
 import Loader from '../../components/UI/Loader/Loader'
-import {fetchTodos} from '../../store/actions/createList'
+import {fetchTodos, createTodo, completedTodo, removeTodo} from '../../store/actions/createList'
 
 
 moment.updateLocale('ru',  
@@ -22,151 +21,51 @@ moment.updateLocale('ru',
 
 class CreateList extends Component {
 
-    markTaskHandler = async (event) => {
-        const taskList = this.state.taskList
-        const id = event.target.dataset.id
-        const taskIndex = taskList.findIndex((task => task.id === id));
-        const eventChecked = event.target.checked
-        const done = taskList[taskIndex].done
-            if(id){
-                const query = `
-                    mutation {
-                        completedTodo(id: "${id}", done: ${!done}){
-                            updatedAt
-                        }
-                    }
-                `
-                try{
-                    await axios({
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'Accept': 'application/json'
-                                },
-                            url: '/graphql',
-                            data: JSON.stringify({query})
-                            })
-                            .then(response => {
-                                const todoItemTodo = response.data.data.completedTodo
-                                if(todoItemTodo){
-                                    if(eventChecked){
-                                        taskList[taskIndex].updatedAt = moment(+todoItemTodo.updatedAt).format('LLL')
-                                        taskList[taskIndex].done = !done
-                                        this.setState({
-                                            taskList
-                                        })
-                                    }else{
-                                        taskList[taskIndex].updatedAt = moment(+todoItemTodo.updatedAt).format('LLL')
-                                        taskList[taskIndex].done = false
-                                        this.setState({
-                                            taskList
-                                        })
-                                    }
-                                       
-                                }
-                            })
-                            .catch(e=>console.log(e))
-            }catch(e){
-                console.log(e)
-            } 
+    state = {
+        inputsOptions : {
+            isInvalid: true
         }
     }
 
-    onSubmitHandler = async (event) => {
+    markTaskHandler = (event) => {
+        this.props.completedTodo(event) 
+    }
+
+    onSubmitHandler = (event) => {
        event.preventDefault()
        const form = event.target.querySelectorAll('input')
-       const inputsOptions = this.state.inputsOptions
-       const taskList = this.state.taskList.slice(0)
+       const inputsOptions = {}
 
        form.forEach((item)=> {
            if(item.value.length>0){           
-            inputsOptions.isInvalid = true
-            const title = item.value.trim()
-                if(title){
-                    const query = `
-                        mutation {
-                            createTodo(todo: {title: "${title}"}) {
-                            title
-                            id
-                            createdAt
-                            updatedAt
-                            }
-                        }
-                    `
-                    try{
-                        axios({
-                            method: 'POST',
-                            headers: {
-                                 'Content-Type': 'application/json',
-                                 'Accept': 'application/json'
-                                 },
-                            url: '/graphql',
-                            data: JSON.stringify({query})
-                        })
-                        .then(response=>{
-                            const createItemTodo =  response.data.data.createTodo
-                                createItemTodo.updatedAt = moment(+createItemTodo.updatedAt).format('LLL')
-                                createItemTodo.createdAt = moment(+createItemTodo.createdAt).format('LLL')
-                                taskList.push(createItemTodo)
-                                this.setState({
-                                    taskList,
-                                    inputsOptions
-                                })
-                            })
-                        .catch(e=>console.log(e))
-                    }catch(e){
-                        console.log(e)
-                    } 
-                
-                }
+           inputsOptions.isInvalid = true
+           const title = item.value.trim()
+            if(title){
+                this.props.createTodo(title)
+                this.setState({
+                    inputsOptions
+                })
+            }
            }else{
                inputsOptions.isInvalid = false
                this.setState({
-                inputsOptions
+                   inputsOptions
                })
                return 
            }   
        })
 
        form.forEach((item)=> {
-            item.value = ''
+           item.value = ''
        })
+      
     }
 
     deleteItemTask = async (event) => {
         event.preventDefault()
-        const taskList = this.state.taskList
         const id = event.target.dataset.id
-        if(taskList.length>0){
-            if(id){
-                const query = `
-                        mutation {
-                            removeTodo(id: "${id}")
-                        }
-                    `
-                
-                try{
-                    await axios({
-                            method: 'POST',
-                            headers: { 
-                                'Content-Type': 'application/json',
-                                'Accept': 'application/json'
-                            },
-                            url: '/graphql',
-                            data: JSON.stringify({query})
-                            })
-                            .then(() => {
-                                this.setState({
-                                    taskList: taskList.filter((task) => task.id !== id)
-                                })
-                              
-                            })
-                            .catch(e=>console.log(e))
-                }catch(e){
-                    console.log(e)
-                } 
-            }
-
+        if(id){
+            this.props.removeTodo(id)
         }
     }
 
@@ -222,7 +121,7 @@ class CreateList extends Component {
                             <Input
                                 label={'Введите название задачи'}
                                 name={'name'}
-                                isValid={this.props.inputsOptions.isInvalid}
+                                isValid={this.state.inputsOptions.isInvalid}
                             />
                         </div>
                         <div className="row">
@@ -261,7 +160,10 @@ function mapStateToProps(state) {
 
 function mapDispatchToProps(dispatch){
     return {
-        fetchTodos: () => dispatch(fetchTodos())
+        fetchTodos: () => dispatch(fetchTodos()),
+        createTodo: (title) => dispatch(createTodo(title)),
+        completedTodo: (elem) => dispatch(completedTodo(elem)),
+        removeTodo: (id) => dispatch(removeTodo(id))
         }
 }
 

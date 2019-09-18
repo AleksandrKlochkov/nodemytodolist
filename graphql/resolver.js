@@ -19,10 +19,10 @@ const TodoModel = require('../models/todo')
             throw new Error('Title is required')
         }
     }, 
-    async completedTodo({id, done}) {
+    async completedTodo({id}) {
         try{
             const todo = await TodoModel.findByPk(id)
-            todo.done = done
+            todo.done = !todo.done
             await todo.save()
             return todo
         }catch(e){
